@@ -1,0 +1,41 @@
+{% extends "layout.html" %}
+{% block title %}Voice Chatbot{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold mb-4">🎤 Voice Chatbot</h1>
+<div class="space-y-4">
+  <button id="start-voice" class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded">Start Talking</button>
+  <div class="mt-4">
+    <p><strong>You said:</strong> <span id="voice-user" class="text-yellow-400"></span></p>
+    <p><strong>Bot reply:</strong> <span id="voice-bot" class="text-green-400"></span></p>
+  </div>
+</div>
+<script>
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+
+  function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    speechSynthesis.speak(utterance);
+  }
+
+  document.getElementById("start-voice").onclick = () => {
+    recognition.start();
+  };
+
+  recognition.onresult = async (event) => {
+    const speech = event.results[0][0].transcript;
+    document.getElementById("voice-user").textContent = speech;
+
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ message: speech })
+    });
+    const data = await res.json();
+    const reply = data.reply || data.error;
+    document.getElementById("voice-bot").textContent = reply;
+    speak(reply);
+  };
+</script>
+{% endblock %}

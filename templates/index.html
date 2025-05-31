@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% block title %}Text Chatbot{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold mb-4">💬 Text Chatbot</h1>
+<div class="space-y-4">
+  <input id="text-input" type="text" placeholder="Ask something..." class="w-full p-3 rounded bg-gray-700 border border-gray-600">
+  <button id="text-send" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded">Send</button>
+  <div id="chat-history" class="mt-6 space-y-2"></div>
+</div>
+
+<script>
+  function createChatBubble(input, reply) {
+    const chatDiv = document.createElement("div");
+    let codeBlock = "";
+    let textReply = reply;
+
+    if (reply.includes("```")) {
+      const codeMatch = reply.match(/```(\w+)?\n([\s\S]*?)```/);
+      if (codeMatch) {
+        const lang = codeMatch[1] || "";
+        const code = codeMatch[2];
+        codeBlock = `<pre class='bg-gray-900 text-green-400 p-4 rounded mt-2 relative whitespace-pre-wrap'><code>${code}</code><button onclick='copyToClipboard(this)' class='absolute top-1 right-1 bg-gray-700 text-sm px-2 py-1 rounded'>Copy</button></pre>`;
+        textReply = reply.replace(codeMatch[0], "");
+      }
+    }
+
+    chatDiv.innerHTML = `
+      <div class="bg-gray-800 p-4 rounded">
+        <p><strong>You:</strong> ${input}</p>
+        <p><strong>Bot:</strong> ${textReply}</p>
+        ${codeBlock}
+      </div>
+    `;
+    return chatDiv;
+  }
+
+  async function sendMessage() {
+    const input = document.getElementById("text-input").value.trim();
+    if (!input) return;
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ message: input })
+    });
+    const data = await res.json();
+    const chatBubble = createChatBubble(input, data.reply || data.error);
+    document.getElementById("chat-history").prepend(chatBubble);
+    document.getElementById("text-input").value = "";
+  }
+
+  document.getElementById("text-send").onclick = sendMessage;
+
+  // Optional: send message on Enter key press
+  document.getElementById("text-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+
+  function copyToClipboard(button) {
+    const code = button.previousElementSibling;
+    const text = code.innerText;
+    navigator.clipboard.writeText(text);
+    button.innerText = "Copied!";
+    setTimeout(() => button.innerText = "Copy", 1500);
+  }
+</script>
+{% endblock %}
+
